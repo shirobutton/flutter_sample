@@ -83,3 +83,29 @@ class TaskList extends ConsumerWidget {
     );
   }
 }
+
+class AddTask extends ConsumerWidget {
+  final TextEditingController controller = TextEditingController();
+
+  AddTask({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(controller: controller),
+        ),
+        IconButton(
+          icon: const Icon(Icons.add),
+          onPressed: () {
+            ref
+                .read(taskListProvider.notifier)
+                .update((state) => [...state, controller.text]);
+            controller.clear();
+          },
+        ),
+      ],
+    );
+  }
+}
