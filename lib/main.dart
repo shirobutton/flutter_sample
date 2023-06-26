@@ -30,6 +30,8 @@ class MyApp extends StatelessWidget {
   }
 }
 
+final counterProvider = StateProvider<int>((ref) => 0);
+
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
 
