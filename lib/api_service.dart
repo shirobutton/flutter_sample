@@ -10,6 +10,12 @@ final apiServiceProvider = Provider<ApiService>((ref) {
   return ApiService(dio);
 });
 
+final postsProvider = FutureProvider<List<Post>>((ref) async {
+  final apiService = ref.watch(apiServiceProvider);
+  final posts = await apiService.getPosts();
+  return posts;
+});
+
 @RestApi(baseUrl: 'https://jsonplaceholder.typicode.com/')
 abstract class ApiService {
   factory ApiService(Dio dio, {String baseUrl}) = _ApiService;
