@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/api_service.dart';
 
+import 'task.dart';
+
 void main() {
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -48,26 +50,81 @@ class MyHomePage extends ConsumerWidget {
         children: [
           AddTask(),
           const Expanded(child: TaskList()),
-          const Expanded(child: PostsList()),
         ],
       ),
     );
   }
 }
 
-final taskListProvider = StateProvider<List<String>>((ref) => []);
+final taskListProvider = StateProvider<List<Task>>((ref) => []);
+final indexProvider = Provider<int>((_) {
+  throw UnimplementedError();
+});
 
 class TaskList extends ConsumerWidget {
   const TaskList({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final taskList = ref.watch(taskListProvider);
+    final taskListLength = ref.watch(taskListProvider.select((value) {
+      return value.length;
+    }));
     return ListView.builder(
-      itemCount: taskList.length,
+      itemCount: taskListLength,
       itemBuilder: (context, index) {
-        return ListTile(title: Text(taskList[index]));
+        return ProviderScope(
+          overrides: [indexProvider.overrideWith((_) => index)],
+          child: const TaskItem(),
+        );
       },
+    );
+  }
+}
+
+extension KotlinLikeList<T> on Iterable<T> {
+  T? getOrNull(int index) {
+    if (index >= 0 && index < length) return elementAt(index);
+    return null;
+  }
+}
+
+class TaskItem extends ConsumerWidget {
+  const TaskItem({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final index = ref.watch(indexProvider);
+    final task = ref.watch(taskListProvider.select((list) {
+      if (index >= 0 && index < list.length) return list[index];
+      return null;
+    }));
+    if (task == null) return const SizedBox.shrink();
+    return ListTile(
+      title: Text(task.name),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Checkbox(
+            value: task.isCompleted,
+            onChanged: (bool? value) {
+              final newTask = task.copyWith(isCompleted: !task.isCompleted);
+              ref.read(taskListProvider.notifier).update((state) {
+                state[index] = newTask;
+                return List.from(state);
+              });
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () {
+              ref.read(taskListProvider.notifier).update((state) {
+                state.removeAt(index);
+                return List.from(state);
+              });
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -89,7 +146,7 @@ class AddTask extends ConsumerWidget {
           onPressed: () {
             ref
                 .read(taskListProvider.notifier)
-                .update((state) => [...state, controller.text]);
+                .update((state) => [...state, Task(name: controller.text)]);
             controller.clear();
           },
         ),
