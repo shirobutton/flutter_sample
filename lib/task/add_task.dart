@@ -20,7 +20,7 @@ class AddTask extends ConsumerWidget {
           onPressed: () {
             ref
                 .read(taskListProvider.notifier)
-                .update((state) => [...state, Task(name: controller.text)]);
+                .insert(Task(name: controller.text));
             controller.clear();
           },
         ),

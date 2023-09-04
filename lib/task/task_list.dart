@@ -8,9 +8,7 @@ class TaskList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final taskListLength = ref.watch(taskListProvider.select((value) {
-      return value.length;
-    }));
+    final taskListLength = ref.watch(taskListLengtProvider).valueOrNull ?? 0;
     return ListView.builder(
       itemCount: taskListLength,
       itemBuilder: (context, index) {

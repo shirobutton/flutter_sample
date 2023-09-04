@@ -1,42 +1,50 @@
-import 'dart:convert';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_sample/db/shared_preferences.dart';
+import 'package:flutter_sample/db/todo_database.dart';
 import 'package:flutter_sample/task/task.dart';
 
 final indexProvider = Provider<int>((_) {
   throw UnimplementedError();
 });
 
+final taskListLengtProvider = FutureProvider((ref) =>
+    ref.watch(taskListProvider.selectAsync((taskList) => taskList.length)));
+
+final taskProvider = FutureProviderFamily<Task?, int>(
+  (ref, index) => ref.watch(taskListProvider.selectAsync((taskList) {
+    if (index >= 0 && index < taskList.length) return taskList[index];
+    return null;
+  })),
+);
+
 final taskListProvider =
-    NotifierProvider<TaskListNotifier, List<Task>>(TaskListNotifier.new);
+    AsyncNotifierProvider<TaskListNotifier, List<Task>>(TaskListNotifier.new);
 
-class TaskListNotifier extends Notifier<List<Task>> {
-  static const taskListKey = "taskListKey";
-
+class TaskListNotifier extends AsyncNotifier<List<Task>> {
   @override
-  List<Task> build() {
-    final stringList =
-        ref.watch(sharedPreferencesProvider).getStringList(taskListKey) ?? [];
-    return taskListFromJsonStringList(stringList);
+  Future<List<Task>> build() => ref.watch(getTasksProvider.future);
+
+  Future<void> insert(Task task) async {
+    final insertedTask = await ref.read(insertTaskProvider(task).future);
+    await update((prevList) => [...prevList, insertedTask]);
   }
 
-  void update(List<Task> Function(List<Task>) updater) {
-    state = updater(state);
-    ref
-        .read(sharedPreferencesProvider)
-        .setStringList(taskListKey, taskListToJsonString(state));
+  Future<void> change(Task task) async {
+    final id = task.id;
+    if (id == null) return;
+    await ref.read(updateTaskProvider(task).future);
+    await update((taskList) {
+      final index = taskList.indexWhere((element) => element.id == task.id);
+      taskList[index] = task;
+      return taskList;
+    });
   }
 
-  List<Task> taskListFromJsonStringList(List<String> jsonStringList) =>
-      jsonStringList.map((string) {
-        final json = jsonDecode(string);
-        return Task.fromJson(json);
-      }).toList();
-
-  List<String> taskListToJsonString(List<Task> taskList) =>
-      taskList.map((task) {
-        final json = task.toJson();
-        return jsonEncode(json);
-      }).toList();
+  Future<void> delete(int? id) async {
+    if (id == null) return;
+    await ref.read(deleteTaskProvider(id).future);
+    await update((taskList) {
+      taskList.removeWhere((element) => element.id == id);
+      return taskList;
+    });
+  }
 }
