@@ -1,25 +1,26 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/db/todo_database.dart';
 import 'package:flutter_sample/task/task.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'task_provider.g.dart';
 
 final indexProvider = Provider<int>((_) {
   throw UnimplementedError();
 });
 
-final taskListLengtProvider = FutureProvider((ref) =>
-    ref.watch(taskListProvider.selectAsync((taskList) => taskList.length)));
+@riverpod
+Future<int> taskListLength(TaskListLengthRef ref) =>
+    ref.watch(taskListProvider.selectAsync((taskList) => taskList.length));
 
-final taskProvider = FutureProviderFamily<Task?, int>(
-  (ref, index) => ref.watch(taskListProvider.selectAsync((taskList) {
-    if (index >= 0 && index < taskList.length) return taskList[index];
-    return null;
-  })),
-);
+@riverpod
+Future<Task?> task(TaskRef ref, int index) =>
+    ref.watch(taskListProvider.selectAsync((taskList) {
+      if (index >= 0 && index < taskList.length) return taskList[index];
+      return null;
+    }));
 
-final taskListProvider =
-    AsyncNotifierProvider<TaskListNotifier, List<Task>>(TaskListNotifier.new);
-
-class TaskListNotifier extends AsyncNotifier<List<Task>> {
+@riverpod
+class TaskList extends _$TaskList {
   @override
   Future<List<Task>> build() => ref.watch(getTasksProvider.future);
 

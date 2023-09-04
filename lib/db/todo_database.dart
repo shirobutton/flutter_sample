@@ -1,7 +1,9 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_sample/task/task.dart';
 import 'package:path/path.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sqflite/sqflite.dart';
+
+part 'todo_database.g.dart';
 
 const _databaseName = 'todo.db';
 const _databaseVersion = 1;
@@ -29,13 +31,15 @@ final _todoDatabaseProvider = FutureProvider<Database>(
   },
 );
 
-final getTasksProvider = FutureProvider<List<Task>>((ref) async {
+@riverpod
+Future<List<Task>> getTasks(GetTasksRef ref) async {
   final database = await ref.read(_todoDatabaseProvider.future);
   final jsonList = await database.query(_table);
   return jsonList.map((json) => Task.fromJson(json)).toList();
-});
+}
 
-final insertTaskProvider = FutureProviderFamily<Task, Task>((ref, task) async {
+@riverpod
+Future<Task> insertTask(InsertTaskRef ref, Task task) async {
   final database = await ref.read(_todoDatabaseProvider.future);
   final id = await database.insert(
     _table,
@@ -43,9 +47,10 @@ final insertTaskProvider = FutureProviderFamily<Task, Task>((ref, task) async {
     conflictAlgorithm: ConflictAlgorithm.replace,
   );
   return task.copyWith(id: id);
-});
+}
 
-final updateTaskProvider = FutureProviderFamily<void, Task>((ref, task) async {
+@riverpod
+Future<void> updateTask(UpdateTaskRef ref, Task task) async {
   final database = await ref.read(_todoDatabaseProvider.future);
   await database.update(
     _table,
@@ -54,13 +59,14 @@ final updateTaskProvider = FutureProviderFamily<void, Task>((ref, task) async {
     whereArgs: [task.id],
     conflictAlgorithm: ConflictAlgorithm.replace,
   );
-});
+}
 
-final deleteTaskProvider = FutureProviderFamily<void, int>((ref, id) async {
+@riverpod
+Future<void> deleteTask(DeleteTaskRef ref, int id) async {
   final database = await ref.read(_todoDatabaseProvider.future);
   await database.delete(
     _table,
     where: '$_columnId = ?',
     whereArgs: [id],
   );
-});
+}
